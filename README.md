@@ -1,6 +1,8 @@
-# NBA Chemistry Analyzer [Link](https://nba-chemistry-2024.streamlit.app/)
+# NBA Chemistry Analyzer 
 
 Discover which player combinations work best together
+
+##[Link](https://nba-chemistry-2024.streamlit.app/)
 
 Ever wonder why some NBA lineups dominate while others struggle? This app uses real game data to show you which 5-player combinations perform best together.
 
