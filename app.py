@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import requests
+import json
 import os
 from datetime import datetime
 
@@ -26,58 +26,33 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-API_KEY = os.environ.get("BALLDONTLIE_API_KEY", "")
-BASE    = "https://api.balldontlie.io/v1"
-SEASON  = 2025
+# ── load from files ───────────────────────────────────────────────────────────
 
-# ── api helpers ───────────────────────────────────────────────────────────────
+@st.cache_data(show_spinner=False)
+def load_data():
+    base = os.path.dirname(__file__)
+    with open(os.path.join(base, "data", "teams.json")) as f:
+        teams_list = json.load(f)
+    with open(os.path.join(base, "data", "games.json")) as f:
+        games = json.load(f)
+    try:
+        with open(os.path.join(base, "data", "last_updated.json")) as f:
+            last_updated = json.load(f)["timestamp"]
+    except Exception:
+        last_updated = "unknown"
+    teams = {t["id"]: t for t in teams_list}
+    return teams, games, last_updated
 
-def bdl_get(path, params=None):
-    if not API_KEY:
-        st.error("Set BALLDONTLIE_API_KEY as an environment variable.")
-        st.stop()
-    headers = {"Authorization": API_KEY}
-    params  = params or {}
-    r = requests.get(f"{BASE}{path}", headers=headers, params=params, timeout=15)
-    r.raise_for_status()
-    return r.json()
-
-def paginate(path, params=None):
-    import time
-    params   = params or {}
-    params["per_page"] = 100
-    results  = []
-    cursor   = None
-    while True:
-        if cursor:
-            params["cursor"] = cursor
-        data   = bdl_get(path, params)
-        results.extend(data["data"])
-        cursor = data.get("meta", {}).get("next_cursor")
-        if not cursor:
-            break
-        time.sleep(13)   # free tier: 5 req/min = 1 req per 12s, 13s to be safe
-    return results
-
-# ── cached data ───────────────────────────────────────────────────────────────
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def load_teams():
-    data = bdl_get("/teams")["data"]
-    return {t["id"]: t for t in data}
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def load_games():
-    games = paginate("/games", {"seasons[]": SEASON, "per_page": 100})
-    return games
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def load_players():
-    return paginate("/players/active", {"per_page": 100})
+try:
+    teams, games, last_updated = load_data()
+except FileNotFoundError:
+    st.error("Data files not found. Run `python fetch_data.py` locally and commit the `data/` folder to your repo.")
+    st.stop()
 
 # ── derived stats ─────────────────────────────────────────────────────────────
 
 def build_team_stats(games, teams):
+    import statistics
     rows = {}
     for t in teams.values():
         rows[t["id"]] = {
@@ -89,16 +64,15 @@ def build_team_stats(games, teams):
             "away_W": 0, "away_L": 0,
             "clutch_W": 0, "clutch_L": 0,
             "margins": [], "pts_scored": [], "pts_allowed": [],
-            "streak": 0, "streak_type": "",
         }
 
     for g in games:
         if g["status"] != "Final":
             continue
-        ht  = g["home_team"]["id"]
-        vt  = g["visitor_team"]["id"]
-        hs  = g.get("home_team_score", 0) or 0
-        vs  = g.get("visitor_team_score", 0) or 0
+        ht = g["home_team"]["id"]
+        vt = g["visitor_team"]["id"]
+        hs = g.get("home_team_score", 0) or 0
+        vs = g.get("visitor_team_score", 0) or 0
         if hs == 0 and vs == 0:
             continue
 
@@ -112,7 +86,7 @@ def build_team_stats(games, teams):
         ]:
             if tid not in rows:
                 continue
-            r = rows[tid]
+            r   = rows[tid]
             win = (is_home and home_win) or (not is_home and not home_win)
             r["W" if win else "L"] += 1
             if is_home:
@@ -130,23 +104,23 @@ def build_team_stats(games, teams):
         gp = r["W"] + r["L"]
         if gp == 0:
             continue
-        margins = r["margins"]
-        import statistics
-        avg_margin   = sum(margins) / len(margins) if margins else 0
-        consistency  = 100 - min(statistics.stdev(margins) if len(margins) > 1 else 0, 30) * 3.33
-        avg_pts      = sum(r["pts_scored"])  / len(r["pts_scored"])  if r["pts_scored"]  else 0
-        avg_allowed  = sum(r["pts_allowed"]) / len(r["pts_allowed"]) if r["pts_allowed"] else 0
-        w_pct        = r["W"] / gp
-        clutch_gp    = r["clutch_W"] + r["clutch_L"]
-        clutch_pct   = r["clutch_W"] / clutch_gp if clutch_gp else 0
-        home_gp      = r["home_W"] + r["home_L"]
-        away_gp      = r["away_W"] + r["away_L"]
-        home_pct     = r["home_W"] / home_gp if home_gp else 0
-        away_pct     = r["away_W"] / away_gp if away_gp else 0
-        home_away_gap = home_pct - away_pct
-
-        # chemistry = consistency + clutch performance + win pct
-        chemistry = round(consistency * 0.4 + clutch_pct * 100 * 0.35 + w_pct * 100 * 0.25, 1)
+        margins     = r["margins"]
+        avg_margin  = sum(margins) / len(margins) if margins else 0
+        consistency = 100 - min(statistics.stdev(margins) if len(margins) > 1 else 0, 30) * 3.33
+        avg_pts     = sum(r["pts_scored"])  / len(r["pts_scored"])  if r["pts_scored"]  else 0
+        avg_allowed = sum(r["pts_allowed"]) / len(r["pts_allowed"]) if r["pts_allowed"] else 0
+        w_pct       = r["W"] / gp
+        clutch_gp   = r["clutch_W"] + r["clutch_L"]
+        clutch_pct  = r["clutch_W"] / clutch_gp if clutch_gp else 0
+        home_gp     = r["home_W"] + r["home_L"]
+        away_gp     = r["away_W"] + r["away_L"]
+        home_pct    = r["home_W"] / home_gp if home_gp else 0
+        away_pct    = r["away_W"] / away_gp if away_gp else 0
+        chemistry   = round(
+            (consistency / 100) * 40 +
+            clutch_pct          * 35 +
+            w_pct               * 25,
+        1)
 
         df_rows.append({
             "id": r["id"], "Team": r["name"], "Abbr": r["abbr"],
@@ -161,7 +135,7 @@ def build_team_stats(games, teams):
             "Clutch%": round(clutch_pct, 3),
             "Home W%": round(home_pct, 3),
             "Away W%": round(away_pct, 3),
-            "Home/Away Gap": round(home_away_gap, 3),
+            "Home/Away Gap": round(home_pct - away_pct, 3),
             "Chemistry": chemistry,
         })
 
@@ -181,14 +155,13 @@ def team_game_log(games, team_id):
         if hs == 0 and vs == 0:
             continue
         is_home = team_id == ht
-        opp_id  = vt if is_home else ht
         scored  = hs if is_home else vs
         allowed = vs if is_home else hs
         win     = scored > allowed
         rows.append({
             "Date":    g["date"][:10],
             "H/A":     "Home" if is_home else "Away",
-            "Opp ID":  opp_id,
+            "Opp ID":  vt if is_home else ht,
             "Pts":     scored,
             "Opp Pts": allowed,
             "Margin":  scored - allowed,
@@ -200,10 +173,8 @@ def compute_streak(game_log):
     if game_log.empty:
         return "—"
     results = game_log["W/L"].tolist()[::-1]
-    if not results:
-        return "—"
-    cur = results[0]
-    count = 1
+    cur     = results[0]
+    count   = 1
     for r in results[1:]:
         if r == cur:
             count += 1
@@ -211,28 +182,20 @@ def compute_streak(game_log):
             break
     return f"{'W' if cur == 'W' else 'L'}{count}"
 
-# ── load data ─────────────────────────────────────────────────────────────────
+# ── build stats ───────────────────────────────────────────────────────────────
 
-with st.spinner("Loading NBA data... (first load takes 2-3 minutes due to API rate limits — subsequent loads are instant)"):
-    try:
-        teams   = load_teams()
-        games   = load_games()
-        players = load_players()
-    except requests.exceptions.HTTPError as e:
-        st.error(f"API error: {e}")
-        st.stop()
-    except Exception as e:
-        st.error(f"Could not load data: {e}")
-        st.stop()
-
-team_df = build_team_stats(games, teams)
+team_df    = build_team_stats(games, teams)
 id_to_name = {t["id"]: t["full_name"] for t in teams.values()}
 
 # ── header ────────────────────────────────────────────────────────────────────
 
 st.title("🏀 NBA Chemistry Analyzer — 2025-26")
 finished = sum(1 for g in games if g["status"] == "Final")
-st.caption(f"{finished} games played · data via balldontlie.io · refreshes hourly")
+try:
+    updated_dt = datetime.fromisoformat(last_updated).strftime("%b %d, %Y")
+except Exception:
+    updated_dt = last_updated
+st.caption(f"{finished} games · last updated {updated_dt} · data via balldontlie.io")
 
 tab1, tab2, tab3 = st.tabs(["📊 League Overview", "🔬 Team Deep Dive", "⚔️ Head to Head"])
 
@@ -243,32 +206,32 @@ with tab1:
     conf = st.radio("Conference", ["All", "East", "West"], horizontal=True)
     view = team_df if conf == "All" else team_df[team_df["Conf"] == conf]
 
-    # ── 6 league-wide metrics ──
     st.markdown('<p class="section-header">League Averages</p>', unsafe_allow_html=True)
     m1, m2, m3, m4, m5, m6 = st.columns(6)
-    m1.metric("Avg Pts/G",      f"{view['Pts/G'].mean():.1f}")
-    m2.metric("Avg Allowed/G",  f"{view['Allowed/G'].mean():.1f}")
-    m3.metric("Avg Margin",     f"{view['Avg Margin'].mean():+.1f}")
-    m4.metric("Avg Chemistry",  f"{view['Chemistry'].mean():.1f}")
-    m5.metric("Avg Clutch%",    f"{view['Clutch%'].mean():.3f}")
-    m6.metric("Avg Consistency",f"{view['Consistency'].mean():.1f}")
+    m1.metric("Avg Pts/G",       f"{view['Pts/G'].mean():.1f}")
+    m2.metric("Avg Allowed/G",   f"{view['Allowed/G'].mean():.1f}")
+    m3.metric("Avg Margin",      f"{view['Avg Margin'].mean():+.1f}")
+    m4.metric("Avg Chemistry",   f"{view['Chemistry'].mean():.1f}")
+    m5.metric("Avg Clutch%",     f"{view['Clutch%'].mean():.3f}")
+    m6.metric("Avg Consistency", f"{view['Consistency'].mean():.1f}")
 
     st.divider()
 
-    # ── standings table + chemistry chart side by side ──
     col_left, col_right = st.columns([1.2, 1], gap="large")
 
     with col_left:
         st.markdown('<p class="section-header">Standings</p>', unsafe_allow_html=True)
-        display = view[["Team","Conf","W","L","W%","Pts/G","Allowed/G","Avg Margin","Clutch%","Consistency","Chemistry"]].copy()
+        display = view[[
+            "Team", "Conf", "W", "L", "W%", "Pts/G",
+            "Allowed/G", "Avg Margin", "Clutch%", "Consistency", "Chemistry"
+        ]].copy()
         display.index = range(1, len(display) + 1)
         st.dataframe(
             display.style
-                .background_gradient(subset=["Chemistry"], cmap="YlGn")
+                .background_gradient(subset=["Chemistry"],   cmap="YlGn")
                 .background_gradient(subset=["Consistency"], cmap="Blues")
                 .background_gradient(subset=["Avg Margin"],  cmap="RdYlGn"),
-            use_container_width=True,
-            height=530,
+            use_container_width=True, height=530,
         )
 
     with col_right:
@@ -276,8 +239,7 @@ with tab1:
         top = view.sort_values("Chemistry", ascending=True).tail(20)
         fig = px.bar(
             top, x="Chemistry", y="Team", orientation="h",
-            color="Chemistry", color_continuous_scale="YlGn",
-            height=530,
+            color="Chemistry", color_continuous_scale="YlGn", height=530,
         )
         fig.update_layout(
             margin=dict(l=0, r=0, t=10, b=10),
@@ -288,7 +250,6 @@ with tab1:
 
     st.divider()
 
-    # ── scatter: consistency vs clutch ──
     c1, c2 = st.columns(2, gap="large")
     with c1:
         st.markdown('<p class="section-header">Consistency vs Clutch Performance</p>', unsafe_allow_html=True)
@@ -296,8 +257,7 @@ with tab1:
             view, x="Consistency", y="Clutch%",
             text="Abbr", color="Chemistry",
             color_continuous_scale="YlGn",
-            size="GP", hover_data=["Team","W","L"],
-            height=380,
+            size="GP", hover_data=["Team", "W", "L"], height=380,
         )
         fig2.update_traces(textposition="top center", textfont_size=9)
         fig2.add_hline(y=view["Clutch%"].mean(), line_dash="dash", line_color="gray", opacity=0.4)
@@ -327,8 +287,8 @@ with tab2:
     selected   = st.selectbox("Select a team", team_names, key="dive_team")
     row        = team_df[team_df["Team"] == selected].iloc[0]
     tid        = int(row["id"])
+    gl         = team_game_log(games, tid)
 
-    # ── 8 key metrics ──
     st.markdown('<p class="section-header">Season at a Glance</p>', unsafe_allow_html=True)
     a, b, c, d, e, f, g, h = st.columns(8)
     a.metric("Record",      f"{int(row['W'])}-{int(row['L'])}")
@@ -339,14 +299,13 @@ with tab2:
     f.metric("Allowed/G",   f"{row['Allowed/G']}")
     g.metric("Clutch%",     f"{row['Clutch%']:.3f}",
              f"{int(row['Clutch W'])}W-{int(row['Clutch L'])}L")
-    streak = compute_streak(team_game_log(games, tid))
-    h.metric("Streak", streak)
+    h.metric("Streak",      compute_streak(gl))
 
     st.divider()
 
-    gl = team_game_log(games, tid)
     if not gl.empty:
-        gl["Opp"] = gl["Opp ID"].map(lambda x: id_to_name.get(x, str(x)))
+        gl["Opp"]    = gl["Opp ID"].map(lambda x: id_to_name.get(x, str(x)))
+        gl["Game #"] = range(1, len(gl) + 1)
 
         col_log, col_charts = st.columns([1, 1.6], gap="large")
 
@@ -363,79 +322,68 @@ with tab2:
                 display_gl.style
                     .applymap(color_wl, subset=["W/L"])
                     .background_gradient(subset=["Margin"], cmap="RdYlGn"),
-                use_container_width=True,
-                height=480,
+                use_container_width=True, height=480,
             )
 
         with col_charts:
-            # margin over time
             st.markdown('<p class="section-header">Point Margin Over Season</p>', unsafe_allow_html=True)
-            gl["Game #"] = range(1, len(gl) + 1)
             gl["Rolling Margin"] = gl["Margin"].rolling(5, min_periods=1).mean()
             fig4 = go.Figure()
-            fig4.add_bar(x=gl["Game #"], y=gl["Margin"],
-                         marker_color=["#2ecc71" if m > 0 else "#e74c3c" for m in gl["Margin"]],
-                         name="Margin", opacity=0.5)
-            fig4.add_scatter(x=gl["Game #"], y=gl["Rolling Margin"],
-                             mode="lines", name="5-game avg",
-                             line=dict(color="#f39c12", width=2))
+            fig4.add_bar(
+                x=gl["Game #"], y=gl["Margin"],
+                marker_color=["#2ecc71" if m > 0 else "#e74c3c" for m in gl["Margin"]],
+                name="Margin", opacity=0.5,
+            )
+            fig4.add_scatter(
+                x=gl["Game #"], y=gl["Rolling Margin"],
+                mode="lines", name="5-game avg",
+                line=dict(color="#f39c12", width=2),
+            )
             fig4.add_hline(y=0, line_color="gray", line_dash="dash", opacity=0.4)
             fig4.update_layout(height=220, margin=dict(l=0,r=0,t=10,b=10),
-                               legend=dict(orientation="h", y=1.15),
-                               showlegend=True)
+                               legend=dict(orientation="h", y=1.15))
             st.plotly_chart(fig4, use_container_width=True)
 
-            # home vs away breakdown
-            st.markdown('<p class="section-header">Home vs Away Breakdown</p>', unsafe_allow_html=True)
+            st.markdown('<p class="section-header">Home vs Away Win Rate</p>', unsafe_allow_html=True)
             ha_data = pd.DataFrame({
                 "Location": ["Home", "Away"],
                 "Win%": [row["Home W%"], row["Away W%"]],
-                "color": ["#1d428a", "#c8102e"],
             })
-            fig5 = px.bar(ha_data, x="Location", y="Win%",
-                          color="Location",
-                          color_discrete_map={"Home": "#1d428a", "Away": "#c8102e"},
-                          height=200, text="Win%")
+            fig5 = px.bar(
+                ha_data, x="Location", y="Win%",
+                color="Location",
+                color_discrete_map={"Home": "#1d428a", "Away": "#c8102e"},
+                height=200, text="Win%",
+            )
             fig5.update_traces(texttemplate="%{text:.3f}", textposition="inside")
             fig5.update_layout(margin=dict(l=0,r=0,t=10,b=10),
                                showlegend=False, yaxis_range=[0, 1])
             st.plotly_chart(fig5, use_container_width=True)
 
-        # scoring trend
         st.markdown('<p class="section-header">Scoring vs Allowed This Season</p>', unsafe_allow_html=True)
-        gl["Pts Roll"]  = gl["Pts"].rolling(5, min_periods=1).mean()
-        gl["Opp Roll"]  = gl["Opp Pts"].rolling(5, min_periods=1).mean()
+        gl["Pts Roll"] = gl["Pts"].rolling(5, min_periods=1).mean()
+        gl["Opp Roll"] = gl["Opp Pts"].rolling(5, min_periods=1).mean()
         fig6 = go.Figure()
         fig6.add_scatter(x=gl["Game #"], y=gl["Pts Roll"],
-                         name="Pts scored (5g avg)", line=dict(color="#2ecc71", width=2))
+                         name="Scored (5g avg)", line=dict(color="#2ecc71", width=2))
         fig6.add_scatter(x=gl["Game #"], y=gl["Opp Roll"],
-                         name="Pts allowed (5g avg)", line=dict(color="#e74c3c", width=2))
+                         name="Allowed (5g avg)", line=dict(color="#e74c3c", width=2))
         fig6.update_layout(height=200, margin=dict(l=0,r=0,t=10,b=10),
                             legend=dict(orientation="h", y=1.2))
         st.plotly_chart(fig6, use_container_width=True)
 
-        # league rank context
         st.divider()
-        st.markdown('<p class="section-header">League Context — Where Do They Rank?</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-header">League Context</p>', unsafe_allow_html=True)
         r1, r2, r3, r4, r5 = st.columns(5)
-        metrics_rank = [
-            ("Chemistry",    r1, "higher"),
-            ("Consistency",  r2, "higher"),
-            ("Pts/G",        r3, "higher"),
-            ("Clutch%",      r4, "higher"),
-            ("Avg Margin",   r5, "higher"),
-        ]
-        for col_name, col_widget, direction in metrics_rank:
-            ascending = direction != "higher"
-            rank = team_df[col_name].rank(ascending=ascending, method="min")
-            team_rank = int(rank[team_df["Team"] == selected].values[0])
-            total = len(team_df)
-            col_widget.metric(col_name, f"#{team_rank} of {total}",
-                              f"{row[col_name]}")
+        for col_name, col_widget in [
+            ("Chemistry", r1), ("Consistency", r2),
+            ("Pts/G", r3), ("Clutch%", r4), ("Avg Margin", r5),
+        ]:
+            rank = int(team_df[col_name].rank(ascending=False, method="min")[team_df["Team"] == selected].values[0])
+            col_widget.metric(col_name, f"#{rank} of {len(team_df)}", f"{row[col_name]}")
 
-        with st.expander("Full season stats", expanded=False):
+        with st.expander("Full season stats"):
             st.dataframe(row.to_frame().T, use_container_width=True, hide_index=True)
-
     else:
         st.info("No completed games found for this team yet.")
 
@@ -458,44 +406,34 @@ with tab3:
     id_a  = int(row_a["id"])
     id_b  = int(row_b["id"])
 
-    # head to head games
     h2h = [g for g in games
            if g["status"] == "Final"
            and {g["home_team"]["id"], g["visitor_team"]["id"]} == {id_a, id_b}]
 
     st.divider()
 
-    # ── side-by-side stat comparison ──
     st.markdown('<p class="section-header">Season Stats Comparison</p>', unsafe_allow_html=True)
+    compare_metrics = ["W%", "Chemistry", "Consistency", "Pts/G",
+                       "Allowed/G", "Avg Margin", "Clutch%", "Home W%", "Away W%"]
 
-    compare_metrics = ["W%", "Chemistry", "Consistency", "Pts/G", "Allowed/G",
-                       "Avg Margin", "Clutch%", "Home W%", "Away W%"]
-
-    header, col_a, col_mid, col_b = st.columns([0.8, 1, 0.6, 1])
-    header.markdown("**Stat**")
-    col_a.markdown(f"**{row_a['Abbr']}**")
-    col_mid.markdown("**vs**")
-    col_b.markdown(f"**{row_b['Abbr']}**")
+    hdr, ca, cm, cb = st.columns([0.8, 1, 0.3, 1])
+    hdr.markdown("**Stat**")
+    ca.markdown(f"**{row_a['Abbr']}**")
+    cm.markdown("**vs**")
+    cb.markdown(f"**{row_b['Abbr']}**")
 
     for metric in compare_metrics:
-        val_a = row_a[metric]
-        val_b = row_b[metric]
+        val_a    = row_a[metric]
+        val_b    = row_b[metric]
         better_a = val_a >= val_b
-        hdr, ca, cm, cb = st.columns([0.8, 1, 0.6, 1])
-        hdr.write(metric)
-        ca.markdown(
-            f"{'🟢' if better_a else '🔴'} **{val_a}**" if better_a
-            else f"{'🔴'} {val_a}"
-        )
-        cm.write("—")
-        cb.markdown(
-            f"{'🟢' if not better_a else '🔴'} **{val_b}**" if not better_a
-            else f"{'🔴'} {val_b}"
-        )
+        h, ca2, cm2, cb2 = st.columns([0.8, 1, 0.3, 1])
+        h.write(metric)
+        ca2.markdown(f"{'🟢' if better_a else '🔴'} **{val_a}**" if better_a else f"🔴 {val_a}")
+        cm2.write("—")
+        cb2.markdown(f"{'🟢' if not better_a else '🔴'} **{val_b}**" if not better_a else f"🔴 {val_b}")
 
     st.divider()
 
-    # ── radar chart ──
     st.markdown('<p class="section-header">Radar Comparison</p>', unsafe_allow_html=True)
     radar_metrics = ["Chemistry", "Consistency", "Clutch%", "Home W%", "Away W%"]
 
@@ -504,8 +442,8 @@ with tab3:
         mx = team_df[metric].max()
         return (val - mn) / (mx - mn) * 100 if mx != mn else 50
 
-    vals_a = [norm_val(m, row_a[m]) for m in radar_metrics]
-    vals_b = [norm_val(m, row_b[m]) for m in radar_metrics]
+    vals_a  = [norm_val(m, row_a[m]) for m in radar_metrics] 
+    vals_b  = [norm_val(m, row_b[m]) for m in radar_metrics]
     vals_a += [vals_a[0]]
     vals_b += [vals_b[0]]
     labels  = radar_metrics + [radar_metrics[0]]
@@ -526,19 +464,18 @@ with tab3:
     )
     st.plotly_chart(fig_radar, use_container_width=True)
 
-    # ── h2h game log ──
     st.divider()
-    st.markdown('<p class="section-header">Head to Head Games This Season</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-header">Head to Head This Season</p>', unsafe_allow_html=True)
 
     if not h2h:
-        st.info("No completed head-to-head games yet this season.")
+        st.info("No completed head-to-head games this season.")
     else:
         h2h_rows = []
         for g in sorted(h2h, key=lambda x: x["date"]):
-            ht  = g["home_team"]["id"]
-            hs  = g.get("home_team_score", 0)
-            vs  = g.get("visitor_team_score", 0)
-            vt  = g["visitor_team"]["id"]
+            ht     = g["home_team"]["id"]
+            hs     = g.get("home_team_score", 0)
+            vs     = g.get("visitor_team_score", 0)
+            vt     = g["visitor_team"]["id"]
             winner = id_to_name.get(ht if hs > vs else vt, "?")
             h2h_rows.append({
                 "Date":   g["date"][:10],
@@ -556,8 +493,7 @@ with tab3:
         hc1.metric(f"{row_a['Abbr']} wins", wins_a)
         hc2.metric("Games played", len(h2h_rows))
         hc3.metric(f"{row_b['Abbr']} wins", wins_b)
-
         st.dataframe(h2h_df, use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("Built with balldontlie.io free tier · Season 2025-26 · Stats computed from raw game results")
+st.caption("Data via balldontlie.io · Season 2025-26 · Chemistry = consistency + clutch + win rate")
