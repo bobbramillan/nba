@@ -43,6 +43,7 @@ def bdl_get(path, params=None):
     return r.json()
 
 def paginate(path, params=None):
+    import time
     params   = params or {}
     params["per_page"] = 100
     results  = []
@@ -55,21 +56,22 @@ def paginate(path, params=None):
         cursor = data.get("meta", {}).get("next_cursor")
         if not cursor:
             break
+        time.sleep(13)   # free tier: 5 req/min = 1 req per 12s, 13s to be safe
     return results
 
 # ── cached data ───────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=86400, show_spinner=False)
 def load_teams():
     data = bdl_get("/teams")["data"]
     return {t["id"]: t for t in data}
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=86400, show_spinner=False)
 def load_games():
     games = paginate("/games", {"seasons[]": SEASON, "per_page": 100})
     return games
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=86400, show_spinner=False)
 def load_players():
     return paginate("/players/active", {"per_page": 100})
 
@@ -211,7 +213,7 @@ def compute_streak(game_log):
 
 # ── load data ─────────────────────────────────────────────────────────────────
 
-with st.spinner("Loading NBA data..."):
+with st.spinner("Loading NBA data... (first load takes 2-3 minutes due to API rate limits — subsequent loads are instant)"):
     try:
         teams   = load_teams()
         games   = load_games()
