@@ -73,7 +73,7 @@ def fetch_team_stats():
             season=SEASON,
             season_type_all_star="Regular Season",
             measure_type_detailed_defense="Advanced",
-            per_mode_simple="PerGame",
+            per_mode_detailed="PerGame",
             headers=HEADERS,
             timeout=TIMEOUT,
         ).get_data_frames()[0]
@@ -87,7 +87,7 @@ def fetch_team_base_stats():
             season=SEASON,
             season_type_all_star="Regular Season",
             measure_type_detailed_defense="Base",
-            per_mode_simple="PerGame",
+            per_mode_detailed="PerGame",
             headers=HEADERS,
             timeout=TIMEOUT,
         ).get_data_frames()[0]
@@ -100,7 +100,7 @@ def fetch_player_stats():
         lambda: leaguedashplayerstats.LeagueDashPlayerStats(
             season=SEASON,
             season_type_all_star="Regular Season",
-            per_mode_simple="PerGame",
+            per_mode_detailed="PerGame",
             headers=HEADERS,
             timeout=TIMEOUT,
         ).get_data_frames()[0]
