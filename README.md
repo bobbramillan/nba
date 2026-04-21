@@ -3,6 +3,7 @@
 Discover which player combinations work best together
 
 [Website Demo Link](https://nba-chemistry-2024.streamlit.app/)
+[Old Site](https://nba-study-103.streamlit.app/)
 
 Ever wonder why some NBA lineups dominate while others struggle? This app uses real game data to show you which 5-player combinations perform best together.
 
