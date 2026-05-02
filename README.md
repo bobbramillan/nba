@@ -1,564 +1,304 @@
-# NBA Chemistry Analyzer 
+# NBA Chemistry Analyzer 🏀
 
-Discover which player combinations work best together
+Discover which NBA teams have the best chemistry — and what's driving it.
 
-[Website Demo Link](https://nba-chemistry-2024.streamlit.app/)
+**[Live Demo](https://nba-chemistry-2024.streamlit.app/)**
 
-[Old Site](https://nba-study-103.streamlit.app/)
-
-Ever wonder why some NBA lineups dominate while others struggle? This app uses real game data to show you which 5-player combinations perform best together.
+Ever wonder why some NBA teams dominate while others with great players still struggle? This app uses real game data to measure team chemistry across the entire league.
 
 ---
 
-## What This App Does (Simple Explanation)
+## What This App Does
 
-### Think of it like cooking:
-- Some ingredients go great together (peanut butter + jelly)
-- Some don't (toothpaste + orange juice)
-- NBA players are the same - certain combinations just work
+### Think of it like a sports report card:
+- Every NBA team gets graded on consistency, clutch performance, and overall win rate
+- You can compare any two teams head-to-head
+- You can dig into a single team's full season story
 
 **This app answers:**
-- Which 5 players should be on the court together?
-- Are coaches missing hidden gem lineups?
-- Which combinations dominate opponents?
+- Which teams have the best chemistry this season?
+- How do teams perform in close games vs. blowouts?
+- Which teams are stronger at home vs. away?
+- How have two specific teams matched up this season?
 
 ---
 
 ## How to Use It
 
-### 1. Select Your Team
-Pick any NBA team from the dropdown (e.g., Los Angeles Lakers)
+### 1. Pick a Tab
 
-### 2. Choose a Season
-Select which season you want to analyze (2023-24 is most recent)
+#### 📊 League Overview
+See the full league standings with chemistry scores, consistency ratings, clutch performance, and more. Filter by East or West conference.
 
-### 3. Adjust Filters (Optional)
-- **Minimum Minutes:** Only show lineups that played together at least X minutes
-  - Higher = more reliable data
-  - Lower = see more experimental lineups
-- **Minimum Games:** Only show lineups that played together in X games
-  - Higher = proven combinations
-  - Lower = include newer lineups
+#### 🔬 Team Deep Dive
+Select any team to see:
+- Season stats at a glance (record, chemistry, consistency, scoring)
+- Game-by-game margin chart with 5-game rolling average
+- Home vs. away win rate breakdown
+- Scoring vs. points allowed trend over the season
+- Where the team ranks in the league for each stat
 
-### 4. Explore Three Tabs
-
-#### Top Lineups
-See the best-performing 5-player combinations
-- Green rows = lineup dominates (good)
-- Red rows = lineup struggles (bad)
-
-#### Hidden Gems
-Find underused lineups that actually perform well
-- These are lineups coaches should try more often
-- High performance but low playing time
-
-#### Analysis
-Statistical deep-dive with charts showing:
-- Average performance across all lineups
-- Best and worst combinations
-- Does more playing time = better results?
+#### ⚔️ Head to Head
+Pick two teams and compare them side by side:
+- Stat comparison with winner highlighted
+- Radar chart for visual comparison (chemistry, clutch, consistency, home/away)
+- Every game they've played against each other this season
 
 ---
 
-## What the Numbers Mean (Beginner-Friendly)
+## What the Numbers Mean
 
-### Net Rating (Most Important Number)
-> "When this lineup is on the court, do we win or lose?"
+### Chemistry Score (Most Important)
+> "How well does this team perform as a unit?"
 
-- **Positive number** (e.g., +5.5) = Lineup outscores opponents
-  - Translation: For every 100 possessions, this lineup scores 5.5 more points than opponents
-- **Negative number** (e.g., -2.4) = Lineup gets outscored
-  - Translation: For every 100 possessions, this lineup scores 2.4 fewer points than opponents
-- **Zero** (0.0) = Even matchup
+A composite score (0–100) made up of:
+- **Consistency (40%)** — how stable their win margins are game to game
+- **Clutch% (35%)** — win rate in games decided by 5 points or fewer
+- **Win% (25%)** — overall winning percentage
 
-**Examples:**
-- Lakers lineup with LeBron + AD: **+5.5** (Very good)
-- Lakers lineup without stars: **-12.5** (Bench unit struggles)
+Higher = better team chemistry.
 
-### Offensive Rating
-> "How many points does this lineup score?"
+### Consistency
+> "Do they show up every night, or are they unpredictable?"
 
-- Higher is better
-- **115+** = Elite offense
-- **105-115** = Average
-- **<105** = Struggling offense
+- Derived from the standard deviation of point margins
+- High consistency = reliable, hard to surprise
+- Low consistency = boom or bust team
 
-### Defensive Rating
-> "How many points does this lineup allow?"
+### Clutch%
+> "Can they win when it matters most?"
 
-- Lower is better
-- **<105** = Elite defense
-- **105-115** = Average
-- **115+** = Struggling defense
+Win rate in games decided by ≤5 points. This separates teams that perform in pressure situations vs. teams that only beat bad opponents by a lot.
 
-### Minutes Played
-> "How much experience does this lineup have together?"
+### Avg Margin
+> "How dominant are their wins (and losses)?"
 
-- More minutes = more reliable data
-- Less minutes = small sample size (could be fluky)
+- Positive = they're winning by more than they're losing
+- Negative = getting outscored on average
 
 ---
 
-## Real-World Example
+## Real Example
 
-**Lineup:** LeBron James - Anthony Davis - Austin Reaves - Rui Hachimura - D'Angelo Russell
+**Boston Celtics — League Overview**
 
-**Stats:**
-- Net Rating: **+5.5**
-- Minutes: **389** (played together a lot)
-- Games: **45**
+| Stat | Value |
+|------|-------|
+| Record | 51-19 |
+| Chemistry | 78.4 |
+| Consistency | 72.1 |
+| Clutch% | 0.621 |
+| Pts/G | 117.3 |
+| Allowed/G | 108.9 |
 
 **What this tells us:**
-- This lineup works really well together
-- They've played enough to trust the data
-- When these 5 are on court, Lakers dominate
-- Coach should keep using this combination
-
----
-
-## Hidden Gems Example
-
-**Lineup:** Anthony Davis - Spencer Dinwiddie - Austin Reaves - Rui Hachimura - Jarred Vanderbilt
-
-**Stats:**
-- Net Rating: **+8.2**
-- Minutes: **42** (not much playing time)
-- Games: **12**
-
-**What this tells us:**
-- This lineup performs great when used
-- But coach hasn't tried it much
-- Maybe worth experimenting with more
-
----
-
-## Why This Matters
-
-### For Fans:
-- Understand why your team wins/loses
-- See if coach is making smart lineup decisions
-- Predict which lineups will close games
-
-### For Fantasy Players:
-- Identify which players benefit from good lineup combos
-- Spot players who might get more minutes
-- Understand usage patterns
-
-### For Analysts:
-- Data-driven lineup optimization
-- Compare coach decisions to optimal lineups
-- Identify underutilized talent
+- Strong chemistry score = cohesive unit
+- High clutch % = they close games out
+- Positive avg margin = consistently winning by more than they lose
 
 ---
 
 ## Where the Data Comes From
 
-**Source:** NBA.com official statistics via their public API
+**Source:** [balldontlie.io](https://balldontlie.io) — a free NBA stats API
 
 **What's tracked:**
-- Every second of every game
-- Who's on the court
-- Points scored/allowed
-- Possessions played
+- Every completed game this season (2025-26)
+- Final scores, home/away, win/loss for every team
+- Updated automatically every day via GitHub Actions
 
-**Updated:** Stats update after each game (usually within hours)
+**Last updated:** shown at the top of the app
 
 ---
 
-## Limitations to Keep in Mind
+## Limitations
 
-### 1. Small Sample Sizes
-- Lineups with only 10-20 minutes might be fluky
-- Use the "Minimum Minutes" filter to focus on proven lineups
+### 1. No Player-Level Data
+This app tracks team performance only — not individual player stats or lineups.
 
-### 2. Opponent Strength Not Considered
-- A lineup that destroys bad teams might struggle vs elite teams
-- Future version could adjust for opponent quality
+### 2. Opponent Strength Not Adjusted
+A team that beats bad opponents a lot can look better than they are. Future version could adjust for strength of schedule.
 
-### 3. Context Matters
-- Garbage time stats inflate numbers
-- Injuries change lineup availability
-- Playoff intensity differs from regular season
+### 3. Small Clutch Sample Sizes
+Early in the season, teams may have played very few close games, making clutch % unreliable.
 
-### 4. Correlation Does Not Equal Causation
-- Just because a lineup has good stats doesn't mean those exact 5 players are the reason
-- Could be luck, opponent weakness, or other factors
+### 4. Correlation vs. Causation
+A high chemistry score doesn't mean those exact players are the reason — it could be coaching, schedule, luck, or other factors.
 
 ---
 
 # Technical Documentation
 
-For developers, data scientists, and basketball analytics enthusiasts
-
 ---
 
 ## Architecture
+
 ```
-Frontend: Streamlit (Python web framework)
-Data Source: NBA.com Stats API (via nba-api library)
+Data Source:    balldontlie.io API
+Data Pipeline:  Python (fetch_data.py) → JSON files in data/
+Automation:     GitHub Actions (runs daily at 8am UTC)
+Frontend:       Streamlit (Python web framework)
 Data Processing: pandas
-Visualization: Plotly
-Caching: Streamlit cache_data decorator
+Visualization:  Plotly
+Hosting:        Streamlit Community Cloud
 ```
 
 ---
 
-## How Net Rating Is Calculated
+## Chemistry Score Formula
 
-### Formula:
-```
-NET_RATING = OFFENSIVE_RATING - DEFENSIVE_RATING
-```
-
-### Offensive Rating:
-```
-OFFENSIVE_RATING = (Points Scored / Possessions) × 100
+```python
+chemistry = (consistency / 100) * 40 + clutch_pct * 35 + win_pct * 25
 ```
 
-### Defensive Rating:
+### Consistency Calculation
+```python
+consistency = 100 - min(stdev(point_margins), 30) * 3.33
 ```
-DEFENSIVE_RATING = (Points Allowed / Possessions) × 100
-```
+Capped so even the most inconsistent teams get a non-zero score.
 
-### Possession Estimation:
+### Clutch%
+```python
+clutch_pct = clutch_wins / (clutch_wins + clutch_losses)
+# where clutch = games decided by ≤5 points
 ```
-Possessions ≈ FGA + (0.44 × FTA) - ORB + TOV
-```
-
-Where:
-- `FGA` = Field Goal Attempts
-- `FTA` = Free Throw Attempts
-- `ORB` = Offensive Rebounds (second-chance possessions)
-- `TOV` = Turnovers
-
-**Why per 100 possessions?**
-- Normalizes for pace of play
-- Fair comparison between fast-break teams and slow-grind teams
-- Industry standard for advanced stats
 
 ---
 
 ## Data Pipeline
 
-### 1. API Request
-```python
-from nba_api.stats.endpoints import leaguedashlineups
+### Step 1 — Fetch (fetch_data.py)
+Pulls all teams and every completed game for the 2025-26 season from balldontlie.io, then saves them as JSON files in `data/`.
 
-lineups = leaguedashlineups.LeagueDashLineups(
-    team_id_nullable=1610612747,  # Lakers
-    season=2023,
-    measure_type_detailed_defense="Advanced",
-    per_mode_detailed="PerGame"
-)
+```python
+# Teams
+GET /v1/teams → data/teams.json
+
+# Games (paginated, 100 per page)
+GET /v1/games?seasons[]=2025 → data/games.json
+
+# Timestamp
+data/last_updated.json
 ```
 
-**Returns:** DataFrame with columns:
-- `GROUP_NAME`: Player names in lineup
-- `GP`: Games played together
-- `MIN`: Total minutes together
-- `W`, `L`, `W_PCT`: Win/loss record
-- `NET_RATING`, `OFF_RATING`, `DEF_RATING`
-- `PACE`: Possessions per 48 minutes
-- Plus 40+ additional stats
+Rate limiting handled with retry logic (up to 5 attempts, 13s delay between pages).
 
-### 2. Data Filtering
+### Step 2 — Compute (app.py)
+On load, the app reads the JSON files and derives all stats in memory — no database needed.
+
 ```python
-df_filtered = df[
-    (df['MIN'] >= min_minutes) &  # Reliability threshold
-    (df['GP'] >= min_games)        # Sample size requirement
-]
+# Per team, per game:
+- W/L, home/away split, clutch flag (margin ≤5)
+- Rolling averages, win streaks, point margins
+
+# Chemistry score computed once per session via build_team_stats()
 ```
 
-**Why filter?**
-- Lineups with <50 minutes are unreliable (small sample)
-- Single-game lineups often have extreme stats (outliers)
-
-### 3. Hidden Gems Algorithm
+### Step 3 — Cache (Streamlit)
 ```python
-median_rating = df['NET_RATING'].median()
-median_minutes = df['MIN'].median()
-
-gems = df[
-    (df['NET_RATING'] > median_rating) &    # Above-average performance
-    (df['MIN'] < median_minutes)            # Below-average usage
-].sort_values('NET_RATING', ascending=False)
-```
-
-**Logic:**
-- Find 50th percentile of net rating and minutes
-- Flag lineups in upper-right quadrant (good but underused)
-- Sorted by performance (best first)
-
----
-
-## Performance Optimizations
-
-### Caching Strategy
-```python
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def get_lineup_data(team_id, season):
-    # Expensive API call
-    return lineups.get_data_frames()[0]
-```
-
-**Benefits:**
-- First load: 3-5 seconds (API request)
-- Subsequent loads: <0.01 seconds (memory cache)
-- Reduces API load on NBA servers
-- Better user experience
-
-**Cache invalidation:**
-- TTL (time-to-live): 1 hour
-- After 3600 seconds, cache expires
-- Next request fetches fresh data
-
-### Rate Limiting Considerations
-**NBA API limits (unofficial):**
-- Approximately 20-30 requests per minute
-- No authentication required
-- Blocks excessive requests with 429 errors
-
-**App's approach:**
-- Caching reduces request frequency
-- Single request per team/season combination
-- Realistic usage: <10 requests per user session
-
----
-
-## Data Quality and Validation
-
-### Known Issues:
-
-1. **Free Agent Data**
-   - Players without teams may have incomplete stats
-   - API returns `TEAM_ID = 0` or `null`
-   - App handles gracefully with fallback logic
-
-2. **Mid-Season Trades**
-   - Lineup data spans multiple teams
-   - `GROUP_NAME` might include players from different stints
-   - Stats aggregate across all teams that season
-
-3. **Garbage Time Inflation**
-   - Blowout games skew bench unit stats
-   - Deep bench lineups may have inflated ratings
-   - Minimum minutes filter mitigates this
-
-4. **Opponent Adjustment Missing**
-   - Current version doesn't weight by opponent strength
-   - Future enhancement: strength-of-schedule adjustments
-
-### Data Validation:
-```python
-# Check for empty data
-if df_filtered.empty:
-    st.warning("No lineups meet criteria")
-    st.stop()
-
-# Verify required columns exist
-required_cols = ['GROUP_NAME', 'GP', 'MIN', 'NET_RATING']
-assert all(col in df.columns for col in required_cols)
+@st.cache_data(show_spinner=False)
+def load_data():
+    # Reads JSON files once per session
+    # Cached in memory for the rest of the session
 ```
 
 ---
 
-## Statistical Methodology
+## Automated Data Updates
 
-### Why Net Rating Over Plus/Minus?
+GitHub Actions runs `fetch_data.py` every day at 8am UTC and commits the updated `data/` folder back to the repo. Streamlit Cloud then serves the latest data on the next load.
 
-**Plus/Minus:**
+```yaml
+# .github/workflows/update_data.yml
+on:
+  schedule:
+    - cron: "0 8 * * *"   # daily at 8am UTC
+  workflow_dispatch:        # manual trigger available
 ```
-Lakers +15 in 10 minutes with LeBron on court
-```
-Problem: Not normalized for possessions or pace
 
-**Net Rating:**
-```
-Lakers +8.0 per 100 possessions with LeBron on court
-```
-Better: Accounts for tempo, fair comparison across eras
-
-### Sample Size Reliability
-
-**Rule of thumb:**
-- `<50 minutes`: Unreliable (ignore)
-- `50-100 minutes`: Suggestive (interesting but unproven)
-- `100-200 minutes`: Reliable (trust the trend)
-- `200+ minutes`: Very reliable (definitive sample)
-
-**Statistical note:**
-- Central Limit Theorem applies with approximately 30+ possessions
-- At 100 minutes, most lineups have 80-120 possessions
-- Sufficient for meaningful inference
+The workflow:
+1. Checks out the repo
+2. Installs Python dependencies
+3. Runs `fetch_data.py` (requires `BALLDONTLIE_API_KEY` secret)
+4. Commits and pushes the updated `data/` folder
 
 ---
 
-## Visualization Choices
+## Project Structure
 
-### Color Gradients
-```python
-.style.background_gradient(subset=['NET_RATING'], cmap='RdYlGn')
 ```
-
-**Color scale:**
-- Red: Negative net rating (bad)
-- Yellow: Near zero (neutral)
-- Green: Positive net rating (good)
-
-**Why this colormap?**
-- Intuitive (traffic light analogy)
-- Colorblind-friendly (red-green but with luminance differences)
-- Standard in sports analytics
-
-### Chart Types
-
-1. **Horizontal Bar Chart** (Top Lineups)
-   - Easy to read long player names
-   - Natural left-to-right reading flow
-   - Color-coded by performance
-
-2. **Scatter Plot** (Minutes vs Net Rating)
-   - Shows correlation (or lack thereof)
-   - Bubble size = games played (third dimension)
-   - Identifies outliers
-
-3. **Histogram** (Net Rating Distribution)
-   - Shows typical range of lineups
-   - Identifies exceptional performers
-   - Bell curve expected (normal distribution)
+nba/
+├── app.py                          # Main Streamlit app
+├── fetch_data.py                   # Data fetch script
+├── requirements.txt                # Python dependencies
+├── README.md                       # This file
+├── data/
+│   ├── games.json                  # All games this season
+│   ├── teams.json                  # All NBA teams
+│   └── last_updated.json           # Timestamp of last fetch
+└── .github/
+    └── workflows/
+        └── update_data.yml         # Daily data update CI/CD
+```
 
 ---
 
-## API Endpoints Used
+## Running Locally
 
-### LeagueDashLineups
-```python
-Endpoint: stats.nba.com/stats/leaguedashlineups
-Method: GET
-Parameters:
-  - team_id_nullable: int (0 for all teams)
-  - season: int (2023 for 2023-24 season)
-  - measure_type_detailed_defense: "Advanced" | "Base"
-  - per_mode_detailed: "PerGame" | "Totals" | "Per100Possessions"
-```
-
-**Response time:** 2-5 seconds typical
-
-**Data volume:**
-- Approximately 150-400 lineups per team per season
-- Approximately 50 columns of stats per lineup
-- Approximately 200KB JSON response
-
----
-
-## Dependencies
-```
-streamlit==1.31.0        # Web framework
-nba-api==1.4.1           # NBA data wrapper
-pandas==2.1.4            # Data manipulation
-numpy==1.26.3            # Numerical operations
-plotly==5.18.0           # Interactive charts
-matplotlib==3.8.2        # Color gradients
-```
-
-**Installation:**
 ```bash
-pip install -r requirements.txt
-```
-
----
-
-## Running the Application
-
-### Local Development
-```bash
-# Clone repository
-git clone https://github.com/your-username/nba-chemistry-analyzer.git
-cd nba-chemistry-analyzer
+# Clone the repo
+git clone https://github.com/bobbramillan/nba.git
+cd nba
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run application
+# Set your API key
+export BALLDONTLIE_API_KEY=your_key_here
+
+# Fetch data (first time setup)
+python fetch_data.py
+
+# Run the app
 streamlit run app.py
 ```
 
-Application will open in your browser at `http://localhost:8501`
+App opens at `http://localhost:8501`
+
+Get a free API key at [balldontlie.io](https://balldontlie.io).
+
+---
+
+## Dependencies
+
+```
+streamlit      # Web framework
+pandas         # Data processing
+plotly         # Interactive charts
+matplotlib     # Color gradients
+requests       # HTTP (fetch_data.py only)
+```
+
+Full versions in `requirements.txt`.
 
 ---
 
 ## Future Enhancements
 
-### Planned Features:
-1. **Opponent Adjustment**
-   - Weight performance by opponent strength
-   - Opponent defensive rating normalization
-
-2. **Player Synergy Matrix**
-   - Which 2-player combos work best?
-   - Network graph visualization
-
-3. **Historical Comparison**
-   - Compare this season vs last season
-   - Identify improving/declining lineups
-
-4. **Lineup Predictor**
-   - ML model to predict untested lineup performance
-   - Based on individual player stats + historical combos
-
-5. **Export Functionality**
-   - Download data as CSV
-   - Generate PDF reports
-
----
-
-## Project Structure
-```
-nba-chemistry-analyzer/
-├── app.py                 # Main Streamlit application
-├── requirements.txt       # Python dependencies
-├── README.md             # This file
-└── .gitignore            # Git ignore rules
-```
-
----
-
-## Contributing
-
-Found a bug or have a feature request?
-
-**GitHub:** github.com/your-username/nba-chemistry-analyzer
-
-**Issues to tackle:**
-- Add opponent-adjusted ratings
-- Implement player synergy heatmap
-- Add season-over-season comparison
-- Improve mobile responsiveness
-- Add unit tests
-
----
-
-## License
-
-MIT License - Use freely, attribution appreciated
+1. **Player-level data** — track individual stats alongside team chemistry
+2. **Opponent-adjusted ratings** — weight performance by strength of schedule
+3. **Season-over-season comparison** — is this team improving or declining?
+4. **Lineup predictor** — ML model to predict untested lineup performance
+5. **Export to CSV/PDF** — download data for your own analysis
 
 ---
 
 ## Acknowledgments
 
-- **Data Source:** NBA.com via nba-api library
-- **Inspiration:** NBA coaching staff analytics teams
-- **Methodology:** Based on Dean Oliver's "Four Factors" framework
+- **Data:** [balldontlie.io](https://balldontlie.io)
+- **Methodology:** Inspired by Dean Oliver's Four Factors framework
 
 ---
 
-## Contact
-
-Questions? Suggestions? Reach out!
-
-**Author:** Bavanan Bramillan
-**GitHub:** github.com/bobbramillan
-
----
-
-**Last Updated:** January 2026
+**Author:** Bavanan Bramillan · [GitHub](https://github.com/bobbramillan)  
+**Last Updated:** May 2026
